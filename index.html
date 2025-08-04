@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FUTRAVIF - Panel de Administración</title>
+    <link rel="stylesheet" href="admin-styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <img src="img/logo.jpg" alt="Logo FUTRAVIF" class="logo">
+            <h1>Panel de Administración</h1>
+            <h2>FUTRAVIF</h2>
+            <p class="subtitle">Gestión de Solicitudes</p>
+        </header>
+
+        <main class="main-content">
+            <!-- Estadísticas -->
+            <section class="stats-section">
+                <div class="stat-card">
+                    <h3>Total Solicitudes</h3>
+                    <span class="stat-number" id="totalSolicitudes">0</span>
+                </div>
+                <div class="stat-card">
+                    <h3>Pendientes</h3>
+                    <span class="stat-number" id="pendientes">0</span>
+                </div>
+                <div class="stat-card">
+                    <h3>Aprobadas</h3>
+                    <span class="stat-number" id="aprobadas">0</span>
+                </div>
+                <div class="stat-card">
+                    <h3>Rechazadas</h3>
+                    <span class="stat-number" id="rechazadas">0</span>
+                </div>
+            </section>
+
+            <!-- Controles -->
+            <section class="controls-section">
+                <div class="search-container">
+                    <input type="text" id="searchInput" placeholder="Buscar por nombre, cédula o número de solicitud...">
+                    <button id="searchBtn" class="btn-search">Buscar</button>
+                </div>
+                
+                <div class="filter-container">
+                    <select id="estadoFilter">
+                        <option value="">Todos los estados</option>
+                        <option value="pendiente">Pendientes</option>
+                        <option value="aprobada">Aprobadas</option>
+                        <option value="rechazada">Rechazadas</option>
+                    </select>
+                    
+                    <select id="fechaFilter">
+                        <option value="">Todas las fechas</option>
+                        <option value="hoy">Hoy</option>
+                        <option value="semana">Esta semana</option>
+                        <option value="mes">Este mes</option>
+                    </select>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="refreshBtn" class="btn-refresh">Actualizar</button>
+                    <button id="exportBtn" class="btn-export">Exportar a Excel</button>
+                </div>
+            </section>
+
+            <!-- Tabla de solicitudes -->
+            <section class="table-section">
+                <div class="table-container">
+                    <table id="solicitudesTable">
+                        <thead>
+                            <tr>
+                                <th>Número</th>
+                                <th>Fecha</th>
+                                <th>Estudiante</th>
+                                <th>Edad</th>
+                                <th>Cédula</th>
+                                <th>Teléfono</th>
+                                <th>Email</th>
+                                <th>Universidad</th>
+                                <th>Carrera</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="solicitudesTableBody">
+                            <!-- Las filas se llenarán dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div id="loading" class="loading" style="display: none;">
+                    <p>Cargando solicitudes...</p>
+                </div>
+                
+                <div id="noResults" class="no-results" style="display: none;">
+                    <p>No se encontraron solicitudes.</p>
+                </div>
+            </section>
+
+            <!-- Paginación -->
+            <section class="pagination-section">
+                <div class="pagination-info">
+                    <span id="paginationInfo">Mostrando 0 de 0 solicitudes</span>
+                </div>
+                <div class="pagination-controls">
+                    <button id="prevPage" class="btn-page" disabled>Anterior</button>
+                    <span id="pageNumbers"></span>
+                    <button id="nextPage" class="btn-page" disabled>Siguiente</button>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>&copy; 2025 Fundación Transformando Vidas para el Futuro (FUTRAVIF)</p>
+            <p>Panel de Administración - Acceso Restringido</p>
+        </footer>
+    </div>
+
+    <!-- Modal para ver detalles -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Detalles de la Solicitud</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Los detalles se llenarán dinámicamente -->
+            </div>
+            <div class="modal-footer">
+                <button id="aprobarBtn" class="btn-aprobar">Aprobar</button>
+                <button id="rechazarBtn" class="btn-rechazar">Rechazar</button>
+                <button id="cerrarModalBtn" class="btn-cerrar">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="admin-script.js"></script>
+</body>
+</html>
