@@ -24,6 +24,14 @@ const firebaseConfig = {
     measurementId: "G-PZL2MHGXWK"
 };
 
+// Configuración de Cloudinary
+const CLOUDINARY_CONFIG = {
+    cloudName: 'dqrrpxw3j',
+    apiKey: '462293412117268',
+    uploadPreset: 'ml_default',
+    folder: 'futravif/records'
+};
+
 // Inicializar Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -59,8 +67,99 @@ const elements = {
     aprobarBtn: document.getElementById('aprobarBtn'),
     rechazarBtn: document.getElementById('rechazarBtn'),
     cerrarModalBtn: document.getElementById('cerrarModalBtn'),
-    closeModal: document.querySelector('.close')
+    closeModal: document.querySelector('.close'),
+    imageModal: document.getElementById('imageModal'),
+    imageModalImg: document.getElementById('imageModalImg'),
+    imageModalClose: document.getElementById('imageModalClose')
 };
+
+// Función para generar URL de Cloudinary
+function generarUrlCloudinary(publicId, transformaciones = 'c_fill,w_150,h_150,q_auto') {
+    if (!publicId) return null;
+    return `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloudName}/image/upload/${transformaciones}/${publicId}`;
+}
+
+// Función para obtener tipo de archivo
+function obtenerTipoArchivo(url) {
+    if (!url) return 'unknown';
+    const extension = url.split('.').pop().toLowerCase();
+    const imagenes = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+    const pdfs = ['pdf'];
+    
+    if (imagenes.includes(extension)) return 'image';
+    if (pdfs.includes(extension)) return 'pdf';
+    return 'unknown';
+}
+
+// Función para mostrar imagen en modal
+function mostrarImagenEnModal(publicId) {
+    if (!publicId) return;
+    
+    const urlCompleta = generarUrlCloudinary(publicId, 'c_fit,w_800,h_600,q_auto');
+    elements.imageModalImg.src = urlCompleta;
+    elements.imageModal.style.display = 'block';
+}
+
+// Función para generar HTML de archivos
+function generarHtmlArchivos(archivos) {
+    if (!archivos || archivos.length === 0) {
+        return '<span class="no-files">No hay archivos adjuntos</span>';
+    }
+
+    return archivos.map(archivo => {
+        const tipo = obtenerTipoArchivo(archivo.url);
+        
+        if (tipo === 'image') {
+            const urlMiniatura = generarUrlCloudinary(archivo.publicId, 'c_fill,w_60,h_60,q_auto');
+            const urlCompleta = generarUrlCloudinary(archivo.publicId, 'c_fit,w_800,h_600,q_auto');
+            
+            return `
+                <div class="file-item image-item">
+                    <div class="file-thumbnail" onclick="mostrarImagenEnModal('${archivo.publicId}')">
+                        <img src="${urlMiniatura}" alt="${archivo.nombre}" />
+                        <div class="file-overlay">
+                            <span class="file-icon">👁️</span>
+                        </div>
+                    </div>
+                    <div class="file-info">
+                        <span class="file-name" title="${archivo.nombre}">${archivo.nombre}</span>
+                        <span class="file-type">Imagen</span>
+                    </div>
+                </div>
+            `;
+        } else if (tipo === 'pdf') {
+            return `
+                <div class="file-item pdf-item">
+                    <div class="file-thumbnail" onclick="window.open('${archivo.url}', '_blank')">
+                        <div class="pdf-icon">📄</div>
+                        <div class="file-overlay">
+                            <span class="file-icon">👁️</span>
+                        </div>
+                    </div>
+                    <div class="file-info">
+                        <span class="file-name" title="${archivo.nombre}">${archivo.nombre}</span>
+                        <span class="file-type">PDF</span>
+                    </div>
+                </div>
+            `;
+        } else {
+            return `
+                <div class="file-item unknown-item">
+                    <div class="file-thumbnail" onclick="window.open('${archivo.url}', '_blank')">
+                        <div class="unknown-icon">📎</div>
+                        <div class="file-overlay">
+                            <span class="file-icon">👁️</span>
+                        </div>
+                    </div>
+                    <div class="file-info">
+                        <span class="file-name" title="${archivo.nombre}">${archivo.nombre}</span>
+                        <span class="file-type">Archivo</span>
+                    </div>
+                </div>
+            `;
+        }
+    }).join('');
+}
 
 // Función para mostrar mensajes
 function showMessage(message, type = 'info') {
@@ -210,7 +309,7 @@ function renderizarTabla() {
     if (solicitudesPagina.length === 0) {
         elements.solicitudesTableBody.innerHTML = `
             <tr>
-                <td colspan="11" style="text-align: center; padding: 40px; color: #666;">
+                <td colspan="12" style="text-align: center; padding: 40px; color: #666;">
                     No se encontraron solicitudes con los filtros aplicados.
                 </td>
             </tr>
@@ -218,31 +317,44 @@ function renderizarTabla() {
         return;
     }
 
-    elements.solicitudesTableBody.innerHTML = solicitudesPagina.map(solicitud => `
-        <tr>
-            <td title="${solicitud.numeroSolicitud || 'N/A'}">${solicitud.numeroSolicitud || 'N/A'}</td>
-            <td title="${formatearFecha(solicitud.fechaEnvio)}">${formatearFecha(solicitud.fechaEnvio)}</td>
-            <td title="${solicitud.nombreEstudiante || 'N/A'}">${solicitud.nombreEstudiante || 'N/A'}</td>
-            <td>${solicitud.edadEstudiante || 'N/A'}</td>
-            <td title="${solicitud.cedulaEstudiante || 'N/A'}">${solicitud.cedulaEstudiante || 'N/A'}</td>
-            <td title="${solicitud.telefonoEstudiante || 'N/A'}">${solicitud.telefonoEstudiante || 'N/A'}</td>
-            <td title="${solicitud.emailEstudiante || 'N/A'}">${solicitud.emailEstudiante || 'N/A'}</td>
-            <td title="${solicitud.universidadDeseada || 'N/A'}">${solicitud.universidadDeseada || 'N/A'}</td>
-            <td title="${solicitud.carreraDeseada || 'N/A'}">${solicitud.carreraDeseada || 'N/A'}</td>
-            <td>
-                <span class="estado ${solicitud.estado || 'pendiente'}">
-                    ${(solicitud.estado || 'pendiente').charAt(0).toUpperCase() + (solicitud.estado || 'pendiente').slice(1)}
-                </span>
-            </td>
-            <td>
-                <div class="action-buttons-table">
-                    <button class="btn-ver" onclick="verDetalles('${solicitud.id}')">Ver</button>
-                    ${solicitud.estado !== 'aprobada' ? `<button class="btn-aprobar" onclick="cambiarEstado('${solicitud.id}', 'aprobada')">Aprobar</button>` : ''}
-                    ${solicitud.estado !== 'rechazada' ? `<button class="btn-rechazar" onclick="cambiarEstado('${solicitud.id}', 'rechazada')">Rechazar</button>` : ''}
-                </div>
-            </td>
-        </tr>
-    `).join('');
+    elements.solicitudesTableBody.innerHTML = solicitudesPagina.map(solicitud => {
+        // Contar archivos adjuntos
+        const archivos = solicitud.archivosAdjuntos || [];
+        const cantidadArchivos = archivos.length;
+        const tieneArchivos = cantidadArchivos > 0;
+        
+        return `
+            <tr>
+                <td title="${solicitud.numeroSolicitud || 'N/A'}">${solicitud.numeroSolicitud || 'N/A'}</td>
+                <td title="${formatearFecha(solicitud.fechaEnvio)}">${formatearFecha(solicitud.fechaEnvio)}</td>
+                <td title="${solicitud.nombreEstudiante || 'N/A'}">${solicitud.nombreEstudiante || 'N/A'}</td>
+                <td>${solicitud.edadEstudiante || 'N/A'}</td>
+                <td title="${solicitud.cedulaEstudiante || 'N/A'}">${solicitud.cedulaEstudiante || 'N/A'}</td>
+                <td title="${solicitud.telefonoEstudiante || 'N/A'}">${solicitud.telefonoEstudiante || 'N/A'}</td>
+                <td title="${solicitud.emailEstudiante || 'N/A'}">${solicitud.emailEstudiante || 'N/A'}</td>
+                <td title="${solicitud.universidadDeseada || 'N/A'}">${solicitud.universidadDeseada || 'N/A'}</td>
+                <td title="${solicitud.carreraDeseada || 'N/A'}">${solicitud.carreraDeseada || 'N/A'}</td>
+                <td class="files-column">
+                    ${tieneArchivos ? 
+                        `<span class="files-indicator" title="${cantidadArchivos} archivo(s)">📎 ${cantidadArchivos}</span>` : 
+                        '<span class="no-files-indicator">Sin archivos</span>'
+                    }
+                </td>
+                <td>
+                    <span class="estado ${solicitud.estado || 'pendiente'}">
+                        ${(solicitud.estado || 'pendiente').charAt(0).toUpperCase() + (solicitud.estado || 'pendiente').slice(1)}
+                    </span>
+                </td>
+                <td>
+                    <div class="action-buttons-table">
+                        <button class="btn-ver" onclick="verDetalles('${solicitud.id}')">Ver</button>
+                        ${solicitud.estado !== 'aprobada' ? `<button class="btn-aprobar" onclick="cambiarEstado('${solicitud.id}', 'aprobada')">Aprobar</button>` : ''}
+                        ${solicitud.estado !== 'rechazada' ? `<button class="btn-rechazar" onclick="cambiarEstado('${solicitud.id}', 'rechazada')">Rechazar</button>` : ''}
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
 }
 
 // Función para actualizar paginación
@@ -390,7 +502,7 @@ function verDetalles(id) {
             <div class="detail-row">
                 <div class="detail-item">
                     <span class="detail-label">Ingresos Padre 1:</span>
-                    <span class="detail-value">${solicitudActual.ingresosPadre1 ? `RD${parseInt(solicitudActual.ingresosPadre1).toLocaleString('es-DO')}` : 'N/A'}</span>
+                    <span class="detail-value">${solicitudActual.ingresosPadre1 ? `RD$${parseInt(solicitudActual.ingresosPadre1).toLocaleString('es-DO')}` : 'N/A'}</span>
                 </div>
                 <div class="detail-item">
                     <span class="detail-label">Padre/Tutor 2:</span>
@@ -415,7 +527,7 @@ function verDetalles(id) {
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Ingresos Padre 2:</span>
-                        <span class="detail-value">${solicitudActual.ingresosPadre2 ? `RD${parseInt(solicitudActual.ingresosPadre2).toLocaleString('es-DO')}` : 'N/A'}</span>
+                        <span class="detail-value">${solicitudActual.ingresosPadre2 ? `RD$${parseInt(solicitudActual.ingresosPadre2).toLocaleString('es-DO')}` : 'N/A'}</span>
                     </div>
                 </div>
             ` : ''}
@@ -434,6 +546,13 @@ function verDetalles(id) {
                     <span class="detail-label">Situación Económica:</span>
                     <span class="detail-value">${solicitudActual.situacionEconomica || 'N/A'}</span>
                 </div>
+            </div>
+        </div>
+
+        <div class="detail-section">
+            <h4>Archivos Adjuntos</h4>
+            <div class="files-grid">
+                ${generarHtmlArchivos(solicitudActual.archivosAdjuntos)}
             </div>
         </div>
 
@@ -629,7 +748,7 @@ function configurarEventListeners() {
         }
     });
 
-    // Modal
+    // Modal principal
     elements.closeModal.addEventListener('click', () => {
         elements.detailModal.style.display = 'none';
     });
@@ -650,10 +769,20 @@ function configurarEventListeners() {
         }
     });
 
-    // Cerrar modal al hacer click fuera
+    // Modal de imagen
+    if (elements.imageModalClose) {
+        elements.imageModalClose.addEventListener('click', () => {
+            elements.imageModal.style.display = 'none';
+        });
+    }
+
+    // Cerrar modales al hacer click fuera
     window.addEventListener('click', (e) => {
         if (e.target === elements.detailModal) {
             elements.detailModal.style.display = 'none';
+        }
+        if (e.target === elements.imageModal) {
+            elements.imageModal.style.display = 'none';
         }
     });
 
@@ -668,6 +797,7 @@ function configurarEventListeners() {
 window.verDetalles = verDetalles;
 window.cambiarEstado = cambiarEstado;
 window.irAPagina = irAPagina;
+window.mostrarImagenEnModal = mostrarImagenEnModal;
 
 // Función de inicialización
 function inicializar() {
