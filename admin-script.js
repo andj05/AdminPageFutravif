@@ -80,8 +80,16 @@ function generarUrlCloudinary(publicId, transformaciones = 'c_fill,w_150,h_150,q
 }
 
 // Función para obtener tipo de archivo
-function obtenerTipoArchivo(url) {
-    if (!url) return 'unknown';
+function obtenerTipoArchivo(url, type = '') {
+    if (!url && !type) return 'unknown';
+    
+    // Primero verificar por el tipo MIME si está disponible
+    if (type) {
+        if (type.startsWith('image/')) return 'image';
+        if (type === 'application/pdf') return 'pdf';
+    }
+    
+    // Luego verificar por extensión en la URL
     const extension = url.split('.').pop().toLowerCase();
     const imagenes = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
     const pdfs = ['pdf'];
@@ -100,29 +108,39 @@ function mostrarImagenEnModal(publicId) {
     elements.imageModal.style.display = 'block';
 }
 
-// Función para generar HTML de archivos
+// Función para generar HTML de archivos - CORREGIDA
 function generarHtmlArchivos(archivos) {
-    if (!archivos || archivos.length === 0) {
+    // Verificar si hay archivos y manejar diferentes estructuras
+    const archivosArray = archivos || [];
+    
+    if (archivosArray.length === 0) {
         return '<span class="no-files">No hay archivos adjuntos</span>';
     }
 
-    return archivos.map(archivo => {
-        const tipo = obtenerTipoArchivo(archivo.url);
+    console.log('Archivos recibidos:', archivosArray); // Debug
+
+    return archivosArray.map(archivo => {
+        // Verificar la estructura del archivo
+        const tipo = obtenerTipoArchivo(archivo.url, archivo.type);
+        const nombre = archivo.originalName || archivo.nombre || 'Archivo sin nombre';
+        const publicId = archivo.publicId;
+        const url = archivo.url;
+        
+        console.log('Procesando archivo:', { tipo, nombre, publicId, url }); // Debug
         
         if (tipo === 'image') {
-            const urlMiniatura = generarUrlCloudinary(archivo.publicId, 'c_fill,w_60,h_60,q_auto');
-            const urlCompleta = generarUrlCloudinary(archivo.publicId, 'c_fit,w_800,h_600,q_auto');
+            const urlMiniatura = generarUrlCloudinary(publicId, 'c_fill,w_60,h_60,q_auto');
             
             return `
                 <div class="file-item image-item">
-                    <div class="file-thumbnail" onclick="mostrarImagenEnModal('${archivo.publicId}')">
-                        <img src="${urlMiniatura}" alt="${archivo.nombre}" />
+                    <div class="file-thumbnail" onclick="mostrarImagenEnModal('${publicId}')">
+                        <img src="${urlMiniatura}" alt="${nombre}" />
                         <div class="file-overlay">
                             <span class="file-icon">👁️</span>
                         </div>
                     </div>
                     <div class="file-info">
-                        <span class="file-name" title="${archivo.nombre}">${archivo.nombre}</span>
+                        <span class="file-name" title="${nombre}">${nombre}</span>
                         <span class="file-type">Imagen</span>
                     </div>
                 </div>
@@ -130,14 +148,14 @@ function generarHtmlArchivos(archivos) {
         } else if (tipo === 'pdf') {
             return `
                 <div class="file-item pdf-item">
-                    <div class="file-thumbnail" onclick="window.open('${archivo.url}', '_blank')">
+                    <div class="file-thumbnail" onclick="window.open('${url}', '_blank')">
                         <div class="pdf-icon">📄</div>
                         <div class="file-overlay">
                             <span class="file-icon">👁️</span>
                         </div>
                     </div>
                     <div class="file-info">
-                        <span class="file-name" title="${archivo.nombre}">${archivo.nombre}</span>
+                        <span class="file-name" title="${nombre}">${nombre}</span>
                         <span class="file-type">PDF</span>
                     </div>
                 </div>
@@ -145,14 +163,14 @@ function generarHtmlArchivos(archivos) {
         } else {
             return `
                 <div class="file-item unknown-item">
-                    <div class="file-thumbnail" onclick="window.open('${archivo.url}', '_blank')">
+                    <div class="file-thumbnail" onclick="window.open('${url}', '_blank')">
                         <div class="unknown-icon">📎</div>
                         <div class="file-overlay">
                             <span class="file-icon">👁️</span>
                         </div>
                     </div>
                     <div class="file-info">
-                        <span class="file-name" title="${archivo.nombre}">${archivo.nombre}</span>
+                        <span class="file-name" title="${nombre}">${nombre}</span>
                         <span class="file-type">Archivo</span>
                     </div>
                 </div>
@@ -205,6 +223,7 @@ async function cargarSolicitudes() {
         solicitudes = [];
         querySnapshot.forEach((doc) => {
             const data = doc.data();
+            console.log('Solicitud cargada:', data); // Debug para ver la estructura
             solicitudes.push({
                 id: doc.id,
                 ...data,
@@ -300,7 +319,7 @@ function aplicarFiltros() {
     actualizarPaginacion();
 }
 
-// Función para renderizar la tabla
+// Función para renderizar la tabla - CORREGIDA
 function renderizarTabla() {
     const inicio = (paginaActual - 1) * solicitudesPorPagina;
     const fin = inicio + solicitudesPorPagina;
@@ -318,10 +337,12 @@ function renderizarTabla() {
     }
 
     elements.solicitudesTableBody.innerHTML = solicitudesPagina.map(solicitud => {
-        // Contar archivos adjuntos
-        const archivos = solicitud.archivosAdjuntos || [];
+        // CORRECCIÓN: Cambiar archivosAdjuntos por recordsNotas
+        const archivos = solicitud.recordsNotas || [];
         const cantidadArchivos = archivos.length;
         const tieneArchivos = cantidadArchivos > 0;
+        
+        console.log('Archivos para solicitud', solicitud.numeroSolicitud, ':', archivos); // Debug
         
         return `
             <tr>
@@ -403,13 +424,15 @@ function formatearFecha(fecha) {
     });
 }
 
-// Función para ver detalles de una solicitud
+// Función para ver detalles de una solicitud - CORREGIDA
 function verDetalles(id) {
     solicitudActual = solicitudes.find(s => s.id === id);
     if (!solicitudActual) {
         showMessage('No se pudo cargar la solicitud seleccionada.', 'error');
         return;
     }
+
+    console.log('Mostrando detalles de solicitud:', solicitudActual); // Debug
 
     // Generar HTML con los detalles
     const detallesHTML = `
@@ -552,7 +575,7 @@ function verDetalles(id) {
         <div class="detail-section">
             <h4>Archivos Adjuntos</h4>
             <div class="files-grid">
-                ${generarHtmlArchivos(solicitudActual.archivosAdjuntos)}
+                ${generarHtmlArchivos(solicitudActual.recordsNotas)}
             </div>
         </div>
 
@@ -576,6 +599,10 @@ function verDetalles(id) {
                 <div class="detail-item">
                     <span class="detail-label">Fecha de Envío:</span>
                     <span class="detail-value">${formatearFecha(solicitudActual.fechaEnvio)}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Total de Archivos:</span>
+                    <span class="detail-value">${solicitudActual.totalArchivosSubidos || 0}</span>
                 </div>
             </div>
         </div>
@@ -672,7 +699,8 @@ function exportarAExcel() {
             'Ocupación Padre 2': solicitud.ocupacionPadre2 || '',
             'Ingresos Padre 2': solicitud.ingresosPadre2 || '',
             'Motivación': solicitud.motivacion || '',
-            'Situación Económica': solicitud.situacionEconomica || ''
+            'Situación Económica': solicitud.situacionEconomica || '',
+            'Total Archivos': solicitud.totalArchivosSubidos || 0
         }));
 
         // Crear CSV
